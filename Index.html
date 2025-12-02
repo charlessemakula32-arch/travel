@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Project 3 — AI-Powered Travel Discover</title>
+
+  <!-- VanillaTilt for subtle 3D card tilt -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.7.1/vanilla-tilt.min.js"></script>
+
+  <meta name="description" content="AI-Powered Travel Discover — interactive travel recommendations.">
+
+  <style>
+  /* =========================
+     Theme & Reset
+     ========================= */
+  :root{
+    --bg:#f7faff;            /* very light blue */
+    --text:#071028;          /* deep blue-black */
+    --accent:#0b3d91;        /* strong blue */
+    --accent-soft:#49a8ff;   /* light blue */
+    --card:#ffffff;
+    --glass: rgba(255,255,255,0.75);
+    --muted:#6b7482;
+    --shadow: 0 10px 30px rgba(14,24,40,0.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+    background:var(--bg);
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    line-height:1.45;
+    overflow-x:hidden;
+  }
+  a{color:inherit;text-decoration:none}
+
+  /* =========================
+     Loader (full-screen simulated AI)
+     ========================= */
+  #loader{
+    position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(180deg, rgba(11,61,145,0.03), rgba(11,61,145,0.02));
+  }
+  .spinner{
+    width:72px;height:72px;border-radius:50%;
+    border:7px solid rgba(11,61,145,0.12);
+    border-top-color:var(--accent);
+    animation:spin 1s linear infinite;
+    box-shadow:0 10px 30px rgba(11,61,145,0.08);
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* =========================
+     Header
+     ========================= */
+  header{
+    position:fixed;top:0;left:0;right:0;z-index:800;
+    backdrop-filter:blur(14px);background:rgba(255,255,255,0.8);
+    border-bottom:1px solid rgba(11,61,145,0.04);
+  }
+  .nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:14px 18px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{width:44px;height:44px;border-radius:10px;display:grid;place-items:center;font-weight:800;color:#04111a;background:linear-gradient(135deg,var(--accent-soft),#5b77ff)}
+  .site-title{font-weight:700}
+  .nav-links{display:flex;gap:14px;align-items:center;color:var(--muted)}
+  .nav-links a{padding:8px 10px;border-radius:8px;font-weight:600}
+  .nav-links a:hover{background:rgba(11,61,145,0.06);color:var(--accent)}
+
+  /* Hamburger */
+  .hamburger{
+    display:inline-grid;gap:6px;padding:10px;border-radius:12px;background:rgba(0,0,0,0.02);cursor:pointer;
+  }
+  .hamburger .bar{width:28px;height:3px;background:var(--text);border-radius:3px;transition:all .35s ease}
+  .hamburger.open .bar:nth-child(1){transform:translateY(6px) rotate(45deg)}
+  .hamburger.open .bar:nth-child(2){opacity:0;transform:scaleX(.2)}
+  .hamburger.open .bar:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+
+  /* Overlay menu */
+  .overlay{position:fixed;inset:0;display:none;z-index:790;align-items:flex-start;justify-content:flex-end;background:rgba(2,6,23,0.35);backdrop-filter:blur(6px)}
+  .panel{width:420px;max-width:92vw;height:100%;background:linear-gradient(180deg,rgba(255,255,255,0.98),rgba(245,250,255,0.98));box-shadow:-30px 0 60px rgba(3,10,30,0.12);padding:40px;overflow:auto}
+  .panel a{display:block;color:var(--accent);font-weight:700;margin:18px 0}
+  .panel .cta{margin-top:28px;display:flex;gap:12px}
+  .panel .cta a{padding:10px 14px;border-radius:10px}
+
+  /* =========================
+     Main layout & hero
+     ========================= */
+  main{max-width:1100px;margin:0 auto;padding:92px 20px 60px}
+  .hero{display:flex;gap:28px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  .hero-left{max-width:640px}
+  .kicker{display:inline-block;padding:6px 10px;border-radius:999px;background:linear-gradient(90deg,rgba(73,168,255,0.12),rgba(11,61,145,0.06));color:var(--accent);font-weight:700;font-size:0.85rem}
+  h1{font-size:2.25rem;margin-top:12px;line-height:1.03}
+  p.lead{color:var(--muted);margin-top:12px}
+  .hero-ctas{margin-top:16px;display:flex;gap:12px;flex-wrap:wrap}
+
+  /* Profile visual */
+  .hero-card{width:260px;border-radius:18px;background:var(--card);padding:0;overflow:hidden;border:1px solid rgba(11,61,145,0.06);box-shadow:var(--shadow)}
+  .hero-card img{width:100%;height:240px;object-fit:cover}
+  .hero-card .meta{padding:14px}
+  .meta h3{margin-bottom:6px}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .chip{padding:6px 10px;border-radius:999px;border:1px solid rgba(11,61,145,0.06);font-weight:700;color:var(--accent-soft);background:linear-gradient(90deg,rgba(73,168,255,0.06),transparent);font-size:0.85rem}
+
+  /* =========================
+     Controls: search + categories
+     ========================= */
+  .controls{display:flex;gap:12px;align-items:center;margin-top:22px;flex-wrap:wrap}
+  .search{
+    flex:1;display:flex;gap:8px;align-items:center;background:#fff;padding:8px;border-radius:10px;border:1px solid #e7f0ff;box-shadow:0 8px 20px rgba(11,61,145,0.03)
+  }
+  .search input{border:none;outline:none;padding:10px;width:100%;font-size:1rem}
+  .filters{display:flex;gap:10px;flex-wrap:wrap}
+  .filter-btn{padding:8px 12px;border-radius:999px;border:1px solid rgba(11,61,145,0.06);background:linear-gradient(90deg,rgba(73,168,255,0.04),transparent);cursor:pointer;font-weight:700;color:var(--accent)}
+  .filter-btn.active{background:linear-gradient(90deg,var(--accent-soft),var(--accent));color:#fff;border-color:transparent;box-shadow:0 8px 26px rgba(11,61,145,0.09)}
+
+  /* =========================
+     Results grid
+     ========================= */
+  .results{margin-top:22px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+  .card{
+    background:#fff;border-radius:12px;overflow:hidden;border:1px solid rgba(11,61,145,0.04);box-shadow:0 8px 30px rgba(11,61,145,0.04);transition:transform .35s ease,box-shadow .35s ease;
+    cursor:pointer;
+  }
+  .card:hover{transform:translateY(-8px);box-shadow:0 18px 50px rgba(11,61,145,0.08)}
+  .card img{width:100%;height:160px;object-fit:cover;display:block}
+  .card .card-body{padding:12px}
+  .card h4{font-size:1.05rem;margin-bottom:6px}
+  .muted{color:var(--muted);font-size:.95rem}
+
+  /* "AI generating" loader bar */
+  .ai-loader{height:6px;border-radius:999px;background:#e7f6ff;overflow:hidden;margin-top:12px}
+  .ai-progress{height:100%;width:0;background:linear-gradient(90deg,var(--accent-soft),var(--accent));transition:width 600ms linear}
+
+  /* =========================
+     Empty / no results state
+     ========================= */
+  .empty{padding:40px;text-align:center;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,0.9),rgba(245,250,255,0.9));border:1px solid rgba(11,61,145,0.04);color:var(--muted)}
+
+  /* =========================
+     About / Contact / Footer
+     ========================= */
+  .two-col{display:grid;grid-template-columns:1fr 320px;gap:22px;align-items:start}
+  @media(max-width:900px){.two-col{grid-template-columns:1fr}}
+
+  .contact-card{padding:18px;background:#fff;border-radius:12px;border:1px solid rgba(11,61,145,0.04)}
+  .contact-card a{display:inline-block;padding:10px 14px;border-radius:8px;margin-right:10px;background:linear-gradient(90deg,var(--accent-soft),var(--accent));color:#04111a;font-weight:700}
+
+  footer{margin-top:36px;padding:28px 0;text-align:center;color:var(--muted);font-size:0.95rem}
+  .footer-legal{margin-top:8px;color:var(--muted)}
+
+  /* responsive tweaks */
+  @media(max-width:860px){
+    .hero{gap:18px}
+    .hero-card{width:100%;max-width:420px}
+    .controls{flex-direction:column;align-items:stretch}
+    main{padding:92px 14px 60px}
+  }
+  </style>
+</head>
+<body>
+
+  <!-- Loader shown while page assets load / initial state -->
+  <div id="loader" aria-hidden="false"><div class="spinner" role="status" aria-label="Loading"></div></div>
+
+  <!-- Header -->
+  <header>
+    <div class="nav-inner" role="navigation" aria-label="Main navigation">
+      <div class="brand">
+        <div class="logo">CW</div>
+        <div class="site-title">Charlie Web Engineer</div>
+      </div>
+
+      <nav class="nav-links" aria-hidden="true">
+        <a href="#home">Home</a>
+        <a href="#explore">Explore</a>
+        <a href="#about">About</a>
+        <a href="#contact">Contact</a>
+      </nav>
+
+      <!-- hamburger -->
+      <button id="hamburger" class="hamburger" aria-label="Open menu" aria-expanded="false">
+        <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Overlay panel (mobile) -->
+  <div id="overlay" class="overlay" role="dialog" aria-hidden="true">
+    <div class="panel" role="document">
+      <button id="closePanel" aria-label="Close menu" style="background:none;border:none;font-size:28px;color:var(--accent);position:absolute;right:18px;top:12px">×</button>
+      <a href="#home">Home</a>
+      <a href="#explore">Explore</a>
+      <a href="#about">About</a>
+      <a href="#contact">Contact</a>
+
+      <div style="margin-top:24px">
+        <div class="muted" style="font-size:.9rem">Call</div>
+        <a href="tel:+256700295552" class="cta" style="display:inline-block;margin-top:6px">📞 0700295552</a>
+      </div>
+
+      <div style="margin-top:18px" class="muted">Follow</div>
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <!-- simple inline SVG icons for quality and no external files -->
+        <a href="#" aria-label="GitHub" style="width:40px;height:40px;display:grid;place-items:center;border-radius:8px;background:rgba(11,61,145,0.06)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-width="1.4" d="M12 .5C5.73.5.75 5.48.75 11.75c0 4.86 3.14 8.98 7.5 10.43.55.1.75-.24.75-.52 0-.26-.01-1-.02-1.96-3.05.66-3.69-1.47-3.69-1.47-.5-1.26-1.22-1.6-1.22-1.6-.99-.68.08-.67.08-.67 1.1.08 1.67 1.14 1.67 1.14.97 1.67 2.54 1.19 3.16.91.1-.71.38-1.19.69-1.46-2.44-.28-5-1.22-5-5.44 0-1.2.43-2.18 1.14-2.95-.12-.28-.5-1.4.11-2.92 0 0 .93-.3 3.05 1.13a10.62 10.62 0 0 1 5.55 0c2.12-1.43 3.05-1.13 3.05-1.13.61 1.52.23 2.64.11 2.92.71.77 1.14 1.76 1.14 2.95 0 4.23-2.57 5.16-5.01 5.43.39.34.73 1.02.73 2.06 0 1.49-.01 2.69-.01 3.06 0 .28.2.62.76.52 4.36-1.45 7.5-5.57 7.5-10.43C23.25 5.48 18.27.5 12 .5z"/></svg></a>
+        <a href="#" aria-label="LinkedIn" style="width:40px;height:40px;display:grid;place-items:center;border-radius:8px;background:rgba(11,61,145,0.06)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-width="1.4" d="M16 8a6 6 0 0 1 6 6v6h-4v-6a2 2 0 0 0-2-2h-1v8h-4V8h4v1c.8-1.4 3-2 4-2zM2 9h4v12H2zM4 3a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"/></svg></a>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <main id="home" aria-live="polite">
+    <!-- HERO -->
+    <section class="hero" id="exploreTop">
+      <div class="hero-left">
+        <div class="kicker">AI-Powered Explore</div>
+        <h1>Discover curated travel recommendations — fast</h1>
+        <p class="lead">Select a category or search for a destination. The system simulates AI-powered recommendations with instant filtering and a smooth experience.</p>
+
+        <div class="controls" aria-label="Search and filters">
+          <div class="search" role="search" aria-label="Search destinations">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="opacity:.6"><path stroke="#0b3d91" stroke-width="1.6" d="M21 21l-4.35-4.35"/><circle cx="11" cy="11" r="6" stroke="#0b3d91" stroke-width="1.6"/></svg>
+            <input id="searchInput" type="search" placeholder="Search e.g. Safari, Paris, Beach..." aria-label="Search destinations">
+          </div>
+
+          <div class="filters" role="list" aria-label="Categories">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="adventure">Adventure</button>
+            <button class="filter-btn" data-filter="luxury">Luxury</button>
+            <button class="filter-btn" data-filter="nature">Nature</button>
+            <button class="filter-btn" data-filter="culture">Culture</button>
+          </div>
+        </div>
+
+        <!-- AI loader bar (shows when filtering) -->
+        <div id="aiLoader" class="ai-loader" aria-hidden="true" style="display:none"><div class="ai-progress" id="aiProgress"></div></div>
+      </div>
+
+      <aside class="hero-card" aria-hidden="true">
+        <img src="IMG_20251114_192809_223.webp" alt="Charlie profile image">
+        <div class="meta">
+          <h3>Charlie Web Engineer</h3>
+          <div class="muted">Creator • Front-end & UX • Travel UI experiments</div>
+          <div class="chips" aria-hidden="true">
+            <div class="chip">React</div>
+            <div class="chip">Tailwind</div>
+            <div class="chip">Animation</div>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <!-- RESULTS -->
+    <section id="explore" style="margin-top:18px">
+      <div id="resultsWrap">
+        <div id="results" class="results" aria-live="polite" aria-busy="false"></div>
+        <div id="empty" class="empty" style="display:none">No results found — try a different search or category.</div>
+      </div>
+    </section>
+
+    <!-- About + Contact -->
+    <section id="about" class="two-col" style="margin-top:28px">
+      <div>
+        <h2>About this project</h2>
+        <p class="muted">This demo simulates an AI-powered travel recommender using local data and fast UI filtering. It demonstrates card UI, search & filter UX, loading states, and mobile-friendly navigation.</p>
+
+        <h2 style="margin-top:18px">How it works</h2>
+        <ul class="muted">
+          <li>Filter by category buttons (Adventure, Luxury, Nature, Culture)</li>
+          <li>Search with the search box for instant matches</li>
+          <li>A simulated AI loader gives an engaging feel when fetching results</li>
+          <li>Cards are interactive and use tilt for depth</li>
+        </ul>
+      </div>
+
+      <aside>
+        <div class="contact-card">
+          <h3>Contact</h3>
+          <p class="muted">Interested in a similar product, integration, or a freelance project?</p>
+          <div style="margin-top:12px">
+            <a href="tel:+256700295552">📞 Call</a>
+            <a href="mailto:semakulacharles16@gmail.com">✉ Email</a>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      <div>© 2025 Charlie Web Engineer — All Rights Reserved.</div>
+      <div class="footer-legal muted">Built with a focus on performance, UX and conversion.</div>
+    </footer>
+  </main>
+
+  <!-- =========================
+     Data + Script
+     ========================= -->
+  <script>
+  /**********************
+   Sample data (local JSON array)
+   Each item: id, title, category, description, image (we reuse your image),
+   popularity (used for sorting/demos)
+  **********************/
+  const DESTINATIONS = [
+    { id:1, title:"Murchison Falls Safari", category:"adventure", desc:"Wildlife safaris and river views in Uganda.", image:"IMG_20251114_192809_223.webp", popularity:98 },
+    { id:2, title:"Zanzibar Luxury Beach", category:"luxury", desc:"White sand, private villas and serene sunsets.", image:"IMG_20251114_192809_223.webp", popularity:92 },
+    { id:3, title:"Bwindi Mountain Trek", category:"nature", desc:"Gorilla trekking and mountain hiking.", image:"IMG_20251114_192809_223.webp", popularity:88 },
+    { id:4, title:"Kampala Cultural Walk", category:"culture", desc:"Local markets, food tours and heritage sites.", image:"IMG_20251114_192809_223.webp", popularity:75 },
+    { id:5, title:"Rwenzori Adventure Hike", category:"adventure", desc:"Challenging trails and alpine lakes.", image:"IMG_20251114_192809_223.webp", popularity:81 },
+    { id:6, title:"Luxury Nile Cruise", category:"luxury", desc:"Private cabins, gourmet dining and river views.", image:"IMG_20251114_192809_223.webp", popularity:89 },
+    { id:7, title:"Jinja Water Sports", category:"adventure", desc:"Whitewater rafting and jet-ski fun.", image:"IMG_20251114_192809_223.webp", popularity:79 },
+    { id:8, title:"Serengeti Safari", category:"nature", desc:"Iconic wildlife migrations and camps.", image:"IMG_20251114_192809_223.webp", popularity:95 }
+  ];
+
+  /**********************
+   DOM references
+  **********************/
+  const resultsEl = document.getElementById('results');
+  const emptyEl = document.getElementById('empty');
+  const aiLoader = document.getElementById('aiLoader');
+  const aiProgress = document.getElementById('aiProgress');
+  const searchInput = document.getElementById('searchInput');
+  const filterBtns = Array.from(document.querySelectorAll('.filter-btn'));
+  const hamburger = document.getElementById('hamburger');
+  const overlay = document.getElementById('overlay');
+  const closePanel = document.getElementById('closePanel');
+  const loaderScreen = document.getElementById('loader');
+
+  /**********************
+   Small utility: simulate "AI fetch" with progress animation
+  **********************/
+  function simulateAiFetch(ms = 700){
+    aiLoader.style.display = 'block';
+    aiProgress.style.width = '0%';
+    aiLoader.setAttribute('aria-hidden','false');
+
+    // linear progress over ms
+    const start = performance.now();
+    return new Promise(resolve=>{
+      function tick(now){
+        const elapsed = now - start;
+        const pct = Math.min(100, (elapsed / ms) * 100);
+        aiProgress.style.width = pct + '%';
+        if(elapsed < ms) requestAnimationFrame(tick);
+        else {
+          // finish
+          aiProgress.style.width = '100%';
+          setTimeout(()=>{ aiLoader.style.display = 'none'; aiLoader.setAttribute('aria-hidden','true'); aiProgress.style.width='0%'; resolve() }, 180);
+        }
+      }
+      requestAnimationFrame(tick);
+    });
+  }
+
+  /**********************
+   Render function: render list of destinations
+  **********************/
+  function renderResults(items){
+    resultsEl.innerHTML = '';
+    if(!items || items.length === 0){
+      emptyEl.style.display = 'block';
+      return;
+    } else {
+      emptyEl.style.display = 'none';
+    }
+
+    items.forEach(item=>{
+      const card = document.createElement('article');
+      card.className = 'card';
+      card.setAttribute('tabindex','0');
+      card.innerHTML = `
+        <img src="${item.image}" alt="${escapeHtml(item.title)}">
+        <div class="card-body">
+          <h4>${escapeHtml(item.title)}</h4>
+          <div class="muted">${escapeHtml(item.desc)}</div>
+          <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center">
+            <div><small class="muted">Category: ${item.category}</small></div>
+            <div style="font-weight:700;color:var(--accent)">${item.popularity}%</div>
+          </div>
+        </div>
+      `;
+      resultsEl.appendChild(card);
+
+      // apply tilt if supported
+      try { VanillaTilt.init(card, { max: 8, speed: 400, glare: true, "max-glare":0.12, scale:1.02 }) } catch(e){}
+      // simple keyboard open on Enter -> show more (demo)
+      card.addEventListener('keydown', (ev)=>{
+        if(ev.key === 'Enter') openDetails(item);
+      });
+      // click -> open details
+      card.addEventListener('click', ()=> openDetails(item));
+    });
+  }
+
+  /**********************
+   Escape HTML utility (safe)
+  **********************/
+  function escapeHtml(text){
+    return (text+'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  /**********************
+   Details modal (simple alert for demo)
+  **********************/
+  function openDetails(item){
+    // in a production app we'd open a modal or navigate to a detail page
+    alert(item.title + "\\n\\n" + item.desc + "\\n\\nRecommended by Charlie AI");
+  }
+
+  /**********************
+   Filter & search logic
+  **********************/
+  let activeFilter = 'all';
+  function applyFilterAndSearch(){
+    const q = (searchInput.value || '').trim().toLowerCase();
+    let filtered = DESTINATIONS.filter(d=>{
+      const matchFilter = activeFilter === 'all' ? true : d.category === activeFilter;
+      const matchSearch = q === '' ? true : (d.title.toLowerCase().includes(q) || d.desc.toLowerCase().includes(q));
+      return matchFilter && matchSearch;
+    });
+    // sort by popularity desc
+    filtered.sort((a,b)=>b.popularity - a.popularity);
+    return filtered;
+  }
+
+  async function refreshResultsWithAi(ms = 650){
+    // show "ai loading"
+    resultsEl.innerHTML = ''; emptyEl.style.display='none';
+    resultsEl.setAttribute('aria-busy','true');
+    await simulateAiFetch(ms);
+    const items = applyFilterAndSearch();
+    renderResults(items);
+    resultsEl.setAttribute('aria-busy','false');
+  }
+
+  // initial render after small delay to allow loader screen to disappear
+  window.addEventListener('DOMContentLoaded', ()=> {
+    // small initial AI effect when page first opens
+    setTimeout(()=> refreshResultsWithAi(900), 300);
+  });
+
+  /**********************
+   Events: filters, search
+  **********************/
+  filterBtns.forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      filterBtns.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilter = btn.dataset.filter;
+      await refreshResultsWithAi(700);
+    });
+  });
+
+  // search on Enter or after timeout
+  let searchTimer = null;
+  searchInput.addEventListener('input', ()=>{
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(()=> refreshResultsWithAi(650), 420);
+  });
+  searchInput.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter'){ e.preventDefault(); clearTimeout(searchTimer); refreshResultsWithAi(650); }
+  });
+
+  /**********************
+   Hamburger & overlay behavior
+  **********************/
+  hamburger.addEventListener('click', ()=>{
+    const open = hamburger.classList.toggle('open');
+    if(open){
+      overlay.style.display = 'flex';
+      overlay.setAttribute('aria-hidden','false');
+      hamburger.setAttribute('aria-expanded','true');
+    } else {
+      overlay.style.display = 'none';
+      overlay.setAttribute('aria-hidden','true');
+      hamburger.setAttribute('aria-expanded','false');
+    }
+  });
+  closePanel.addEventListener('click', ()=> {
+    hamburger.classList.remove('open');
+    overlay.style.display = 'none';
+    overlay.setAttribute('aria-hidden','true');
+    hamburger.setAttribute('aria-expanded','false');
+  });
+  overlay.addEventListener('click', (e)=>{ if(e.target === overlay){ hamburger.classList.remove('open'); overlay.style.display='none'; } });
+
+  /**********************
+   Page loader hide
+  **********************/
+  window.addEventListener('load', ()=> {
+    // fade loader out
+    loaderScreen.style.opacity = '0';
+    setTimeout(()=> { loaderScreen.style.display='none'; }, 500);
+  });
+
+  /**********************
+   Accessibility: keyboard close overlay with Esc
+  **********************/
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'Escape'){
+      if(overlay.style.display === 'flex'){
+        closePanel.click();
+      }
+    }
+  });
+  </script>
+</body>
+</html>
